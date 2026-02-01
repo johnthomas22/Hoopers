@@ -5,7 +5,7 @@ interface Props {
   onAdd: (type: EquipmentType) => void;
 }
 
-const PALETTE_ITEMS: EquipmentType[] = ['hoop', 'barrel', 'tunnel', 'start', 'finish'];
+const PALETTE_ITEMS: EquipmentType[] = ['start', 'hoop', 'barrel', 'tunnel', 'finish'];
 
 export default function EquipmentPalette({ onAdd }: Props) {
   return (

@@ -175,8 +175,9 @@ export default function RingCanvas({ course, selectedId, onSelect, onUpdateEquip
               <Line
                 points={fullPathPoints}
                 stroke="#F472B6"
-                strokeWidth={1.5}
+                strokeWidth={3}
                 dash={[8, 4]}
+                tension={0.6}
                 opacity={0.7}
                 listening={false}
               />
