@@ -71,6 +71,59 @@ export default function RingCanvas({ course, selectedId, onSelect, onUpdateEquip
     [stageScale, stagePos],
   );
 
+  // Pinch-to-zoom support
+  const lastPinchRef = useRef<{ dist: number } | null>(null);
+
+  const handleTouchMove = useCallback((e: Konva.KonvaEventObject<TouchEvent>) => {
+    const touches = e.evt.touches;
+    if (touches.length !== 2) {
+      lastPinchRef.current = null;
+      return;
+    }
+
+    e.evt.preventDefault();
+    const stage = stageRef.current;
+    if (!stage) return;
+
+    stage.stopDrag();
+
+    const [t1, t2] = [touches[0], touches[1]];
+    const dist = Math.sqrt((t2.clientX - t1.clientX) ** 2 + (t2.clientY - t1.clientY) ** 2);
+    const centerX = (t1.clientX + t2.clientX) / 2;
+    const centerY = (t1.clientY + t2.clientY) / 2;
+
+    if (lastPinchRef.current) {
+      const scaleFactor = dist / lastPinchRef.current.dist;
+      const oldScale = stage.scaleX();
+      const newScale = Math.max(0.3, Math.min(3, oldScale * scaleFactor));
+
+      const rect = stage.container().getBoundingClientRect();
+      const pointTo = {
+        x: (centerX - rect.left - stage.x()) / oldScale,
+        y: (centerY - rect.top - stage.y()) / oldScale,
+      };
+
+      const newPos = {
+        x: centerX - rect.left - pointTo.x * newScale,
+        y: centerY - rect.top - pointTo.y * newScale,
+      };
+
+      stage.scaleX(newScale);
+      stage.scaleY(newScale);
+      stage.position(newPos);
+      stage.batchDraw();
+
+      setStageScale(newScale);
+      setStagePos(newPos);
+    }
+
+    lastPinchRef.current = { dist };
+  }, []);
+
+  const handleTouchEnd = useCallback(() => {
+    lastPinchRef.current = null;
+  }, []);
+
   const handleStageClick = (e: Konva.KonvaEventObject<MouseEvent | TouchEvent>) => {
     if (e.target === e.target.getStage() || e.target.name() === 'ring-bg') {
       onSelect(null);
@@ -113,6 +166,8 @@ export default function RingCanvas({ course, selectedId, onSelect, onUpdateEquip
           y={stagePos.y}
           draggable
           onWheel={handleWheel}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
           onClick={handleStageClick}
           onTap={handleStageClick}
           onDragEnd={(e) => {
