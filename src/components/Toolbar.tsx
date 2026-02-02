@@ -15,6 +15,10 @@ interface Props {
   onRename: (name: string) => void;
   onRenumber: () => void;
   onUpdateEquipment: (id: string, updates: Partial<Equipment>) => void;
+  onUndo: () => void;
+  onRedo: () => void;
+  canUndo: boolean;
+  canRedo: boolean;
 }
 
 export default function Toolbar({
@@ -30,6 +34,10 @@ export default function Toolbar({
   onRename,
   onRenumber,
   onUpdateEquipment,
+  onUndo,
+  onRedo,
+  canUndo,
+  canRedo,
 }: Props) {
   const [showSettings, setShowSettings] = useState(false);
   const selected = selectedId ? course.equipment.find((e) => e.id === selectedId) : null;
@@ -44,6 +52,12 @@ export default function Toolbar({
           onChange={(e) => onRename(e.target.value)}
           className="bg-slate-700 text-white text-sm font-semibold px-2 py-1 rounded border border-slate-600 flex-1 min-w-[140px]"
         />
+        <button onClick={onUndo} disabled={!canUndo} className="btn-toolbar bg-slate-600 hover:bg-slate-500 disabled:opacity-30 disabled:cursor-default">
+          Undo
+        </button>
+        <button onClick={onRedo} disabled={!canRedo} className="btn-toolbar bg-slate-600 hover:bg-slate-500 disabled:opacity-30 disabled:cursor-default">
+          Redo
+        </button>
         <button onClick={onSave} className="btn-toolbar bg-indigo-600 hover:bg-indigo-500">
           Save
         </button>
