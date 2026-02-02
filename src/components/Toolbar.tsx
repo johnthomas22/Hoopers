@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import type { Course, Equipment } from '../types/course';
+import { useState, useRef } from 'react';
+import type { Course, Equipment, EquipmentType } from '../types/course';
 import { RING_PRESETS, EQUIPMENT_DEFINITIONS } from '../utils/equipment';
 
 interface Props {
@@ -15,6 +15,11 @@ interface Props {
   onRename: (name: string) => void;
   onRenumber: () => void;
   onUpdateEquipment: (id: string, updates: Partial<Equipment>) => void;
+  onUndo: () => void;
+  onRedo: () => void;
+  canUndo: boolean;
+  canRedo: boolean;
+  onImport: (course: Course) => void;
 }
 
 export default function Toolbar({
@@ -30,9 +35,71 @@ export default function Toolbar({
   onRename,
   onRenumber,
   onUpdateEquipment,
+  onUndo,
+  onRedo,
+  canUndo,
+  canRedo,
+  onImport,
 }: Props) {
   const [showSettings, setShowSettings] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const selected = selectedId ? course.equipment.find((e) => e.id === selectedId) : null;
+
+  const VALID_TYPES: EquipmentType[] = ['hoop', 'barrel', 'tunnel', 'start', 'finish'];
+
+  const isValidCourse = (data: unknown): data is Course => {
+    if (typeof data !== 'object' || data === null) return false;
+    const obj = data as Record<string, unknown>;
+    return (
+      typeof obj.id === 'string' &&
+      typeof obj.name === 'string' &&
+      typeof obj.ringWidth === 'number' &&
+      typeof obj.ringHeight === 'number' &&
+      Array.isArray(obj.equipment) &&
+      obj.equipment.every(
+        (e: unknown) =>
+          typeof e === 'object' &&
+          e !== null &&
+          typeof (e as Record<string, unknown>).id === 'string' &&
+          VALID_TYPES.includes((e as Record<string, unknown>).type as EquipmentType) &&
+          typeof (e as Record<string, unknown>).x === 'number' &&
+          typeof (e as Record<string, unknown>).y === 'number' &&
+          typeof (e as Record<string, unknown>).rotation === 'number',
+      )
+    );
+  };
+
+  const handleExport = () => {
+    const json = JSON.stringify(course, null, 2);
+    const blob = new Blob([json], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${course.name.replace(/[^a-zA-Z0-9_-]/g, '_')}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleImport = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const data: unknown = JSON.parse(reader.result as string);
+        if (isValidCourse(data)) {
+          onImport(data);
+        } else {
+          alert('Invalid course file.');
+        }
+      } catch {
+        alert('Could not read file.');
+      }
+    };
+    reader.readAsText(file);
+    // Reset so the same file can be re-imported
+    e.target.value = '';
+  };
 
   return (
     <div className="bg-slate-800 border-b border-slate-700 p-3 space-y-2">
@@ -44,6 +111,12 @@ export default function Toolbar({
           onChange={(e) => onRename(e.target.value)}
           className="bg-slate-700 text-white text-sm font-semibold px-2 py-1 rounded border border-slate-600 flex-1 min-w-[140px]"
         />
+        <button onClick={onUndo} disabled={!canUndo} className="btn-toolbar bg-slate-600 hover:bg-slate-500 disabled:opacity-30 disabled:cursor-default">
+          Undo
+        </button>
+        <button onClick={onRedo} disabled={!canRedo} className="btn-toolbar bg-slate-600 hover:bg-slate-500 disabled:opacity-30 disabled:cursor-default">
+          Redo
+        </button>
         <button onClick={onSave} className="btn-toolbar bg-indigo-600 hover:bg-indigo-500">
           Save
         </button>
@@ -77,10 +150,17 @@ export default function Toolbar({
               </button>
             ))}
           </div>
-          <div className="flex gap-2 pt-1">
+          <div className="flex gap-2 pt-1 flex-wrap">
             <button onClick={onRenumber} className="btn-toolbar bg-amber-600 hover:bg-amber-500 text-xs">
               Renumber
             </button>
+            <button onClick={handleExport} className="btn-toolbar bg-slate-600 hover:bg-slate-500 text-xs">
+              Export
+            </button>
+            <button onClick={() => fileInputRef.current?.click()} className="btn-toolbar bg-slate-600 hover:bg-slate-500 text-xs">
+              Import
+            </button>
+            <input ref={fileInputRef} type="file" accept=".json" onChange={handleImport} className="hidden" />
             <button onClick={onClear} className="btn-toolbar bg-red-600 hover:bg-red-500 text-xs">
               Clear All
             </button>

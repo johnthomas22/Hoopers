@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { useCourseDesigner } from './hooks/useCourseDesigner';
 import RingCanvas from './components/RingCanvas';
 import EquipmentPalette from './components/EquipmentPalette';
@@ -6,6 +7,24 @@ import CourseList from './components/CourseList';
 
 export default function App() {
   const designer = useCourseDesigner();
+
+  // Keyboard shortcuts: Ctrl+Z = undo, Ctrl+Shift+Z / Ctrl+Y = redo
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.target as HTMLElement).tagName === 'INPUT') return;
+      if (e.ctrlKey || e.metaKey) {
+        if (e.key === 'z' && !e.shiftKey) {
+          e.preventDefault();
+          designer.undo();
+        } else if ((e.key === 'z' && e.shiftKey) || e.key === 'y') {
+          e.preventDefault();
+          designer.redo();
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [designer.undo, designer.redo]);
 
   return (
     <div className="h-dvh flex flex-col bg-slate-900 text-white select-none">
@@ -23,6 +42,11 @@ export default function App() {
         onRename={designer.renameCourse}
         onRenumber={designer.renumberEquipment}
         onUpdateEquipment={designer.updateEquipment}
+        onUndo={designer.undo}
+        onRedo={designer.redo}
+        canUndo={designer.canUndo}
+        canRedo={designer.canRedo}
+        onImport={designer.importCourse}
       />
 
       {/* Canvas area */}
