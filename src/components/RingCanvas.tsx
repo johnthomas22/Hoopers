@@ -233,6 +233,7 @@ export default function RingCanvas({ course, selectedId, onSelect, onUpdateEquip
                 strokeWidth={1.5}
                 dash={[8, 4]}
                 opacity={0.7}
+                tension={0.5}
                 listening={false}
               />
             )}
