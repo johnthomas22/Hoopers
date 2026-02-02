@@ -46,6 +46,7 @@ export default function App() {
         onRedo={designer.redo}
         canUndo={designer.canUndo}
         canRedo={designer.canRedo}
+        onImport={designer.importCourse}
       />
 
       {/* Canvas area */}

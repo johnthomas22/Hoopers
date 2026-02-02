@@ -143,6 +143,12 @@ export function useCourseDesigner() {
     resetHistory();
   }, [resetHistory]);
 
+  const importCourse = useCallback((imported: Course) => {
+    setCourse(imported);
+    setSelectedId(null);
+    resetHistory();
+  }, [resetHistory]);
+
   const setRingSize = useCallback((width: number, height: number) => {
     setCourse((prev) => ({ ...prev, ringWidth: width, ringHeight: height }));
   }, []);
@@ -178,6 +184,7 @@ export function useCourseDesigner() {
     setRingSize,
     renameCourse,
     renumberEquipment,
+    importCourse,
     savedCourses,
     showCourseList,
     setShowCourseList,
