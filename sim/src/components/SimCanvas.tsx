@@ -1,18 +1,30 @@
 import { useRef, useState, useCallback, useEffect } from 'react';
 import { Stage, Layer, Rect, Line, Text } from 'react-konva';
 import type Konva from 'konva';
-import type { Course, Equipment } from '../types/course';
+import type { Course } from '../types/course';
+import type { Point } from '../types/simulation';
 import { SCALE } from '../utils/equipment';
-import EquipmentShape from './EquipmentShape';
+import StaticEquipment from './StaticEquipment';
+import DogSprite from './DogSprite';
+import HandlerSprite from './HandlerSprite';
 
 interface Props {
   course: Course;
-  selectedId: string | null;
-  onSelect: (id: string | null) => void;
-  onUpdateEquipment: (id: string, updates: Partial<Equipment>) => void;
+  dogPosition: Point;
+  dogHeading: number;
+  handlerPosition: Point;
+  pathPoints: number[];
+  progress: number;
 }
 
-export default function RingCanvas({ course, selectedId, onSelect, onUpdateEquipment }: Props) {
+export default function SimCanvas({
+  course,
+  dogPosition,
+  dogHeading,
+  handlerPosition,
+  pathPoints,
+  progress,
+}: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const stageRef = useRef<Konva.Stage>(null);
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
@@ -124,13 +136,7 @@ export default function RingCanvas({ course, selectedId, onSelect, onUpdateEquip
     lastPinchRef.current = null;
   }, []);
 
-  const handleStageClick = (e: Konva.KonvaEventObject<MouseEvent | TouchEvent>) => {
-    if (e.target === e.target.getStage() || e.target.name() === 'ring-bg') {
-      onSelect(null);
-    }
-  };
-
-  // Draw grid lines
+  // Grid lines
   const gridLines: { points: number[]; key: string }[] = [];
   for (let x = 0; x <= ringW; x += SCALE) {
     gridLines.push({ points: [x, 0, x, ringH], key: `v${x}` });
@@ -139,19 +145,8 @@ export default function RingCanvas({ course, selectedId, onSelect, onUpdateEquip
     gridLines.push({ points: [0, y, ringW, y], key: `h${y}` });
   }
 
-  // Run path: connect numbered equipment in order
-  const numbered = course.equipment
-    .filter((e) => e.orderNumber !== null)
-    .sort((a, b) => (a.orderNumber ?? 0) - (b.orderNumber ?? 0));
-  const pathPoints = numbered.flatMap((e) => [e.x, e.y]);
-
-  // Include start/finish markers in path
-  const startMarker = course.equipment.find((e) => e.type === 'start');
-  const finishMarker = course.equipment.find((e) => e.type === 'finish');
-  const fullPathPoints: number[] = [];
-  if (startMarker) fullPathPoints.push(startMarker.x, startMarker.y);
-  fullPathPoints.push(...pathPoints);
-  if (finishMarker) fullPathPoints.push(finishMarker.x, finishMarker.y);
+  // Build the portion of path already traversed
+  const traversedPath = getTraversedPath(pathPoints, progress);
 
   return (
     <div ref={containerRef} className="flex-1 bg-slate-900 overflow-hidden touch-none">
@@ -168,8 +163,6 @@ export default function RingCanvas({ course, selectedId, onSelect, onUpdateEquip
           onWheel={handleWheel}
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
-          onClick={handleStageClick}
-          onTap={handleStageClick}
           onDragEnd={(e) => {
             if (e.target === stageRef.current) {
               setStagePos({ x: e.target.x(), y: e.target.y() });
@@ -179,7 +172,6 @@ export default function RingCanvas({ course, selectedId, onSelect, onUpdateEquip
           <Layer>
             {/* Ring background */}
             <Rect
-              name="ring-bg"
               x={0}
               y={0}
               width={ringW}
@@ -201,7 +193,7 @@ export default function RingCanvas({ course, selectedId, onSelect, onUpdateEquip
               />
             ))}
 
-            {/* Meter labels on edges */}
+            {/* Meter labels */}
             {Array.from({ length: course.ringWidth + 1 }, (_, i) => (
               <Text
                 key={`lx${i}`}
@@ -225,32 +217,55 @@ export default function RingCanvas({ course, selectedId, onSelect, onUpdateEquip
               />
             ))}
 
-            {/* Run path */}
-            {fullPathPoints.length >= 4 && (
+            {/* Full path (faint) */}
+            {pathPoints.length >= 4 && (
               <Line
-                points={fullPathPoints}
+                points={pathPoints}
+                stroke="#F472B6"
+                strokeWidth={2}
+                dash={[6, 4]}
+                opacity={0.3}
+                listening={false}
+              />
+            )}
+
+            {/* Traversed path (bright) */}
+            {traversedPath.length >= 4 && (
+              <Line
+                points={traversedPath}
                 stroke="#F472B6"
                 strokeWidth={3}
-                dash={[8, 4]}
-                opacity={0.7}
-                tension={0.5}
+                opacity={0.8}
                 listening={false}
               />
             )}
 
             {/* Equipment */}
             {course.equipment.map((item) => (
-              <EquipmentShape
-                key={item.id}
-                item={item}
-                isSelected={item.id === selectedId}
-                onSelect={() => onSelect(item.id)}
-                onDragEnd={(x, y) => onUpdateEquipment(item.id, { x, y })}
-              />
+              <StaticEquipment key={item.id} item={item} />
             ))}
+
+            {/* Handler */}
+            <HandlerSprite position={handlerPosition} dogPosition={dogPosition} />
+
+            {/* Dog */}
+            <DogSprite position={dogPosition} heading={dogHeading} />
           </Layer>
         </Stage>
       )}
     </div>
   );
+}
+
+/**
+ * Given the full dense path points array and a progress (0-1),
+ * return the subset of points up to that progress.
+ */
+function getTraversedPath(pathPoints: number[], progress: number): number[] {
+  if (pathPoints.length < 4) return [];
+  const pointCount = pathPoints.length / 2;
+  const endIdx = Math.floor(progress * (pointCount - 1));
+  // Include one extra pair for the current interpolated position
+  const sliceEnd = Math.min((endIdx + 2) * 2, pathPoints.length);
+  return pathPoints.slice(0, sliceEnd);
 }

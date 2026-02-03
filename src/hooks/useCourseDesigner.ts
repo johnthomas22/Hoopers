@@ -74,11 +74,35 @@ export function useCourseDesigner() {
         (max, e) => (e.orderNumber !== null && e.orderNumber > max ? e.orderNumber : max),
         0,
       );
+
+      const ringW = prev.ringWidth * SCALE;
+      const ringH = prev.ringHeight * SCALE;
+      const offset = 3 * SCALE; // 3 meters ahead
+
+      let x = ringW / 2;
+      let y = ringH / 2;
+
+      // Place ahead of the last equipment instead of dead center
+      const last = prev.equipment[prev.equipment.length - 1];
+      if (last) {
+        x = last.x + offset;
+        y = last.y;
+        // Wrap within ring bounds with padding
+        const pad = 2 * SCALE;
+        if (x > ringW - pad) {
+          x = pad;
+          y = last.y + offset;
+        }
+        if (y > ringH - pad) {
+          y = pad;
+        }
+      }
+
       const newEquipment: Equipment = {
         id: uuidv4(),
         type,
-        x: (prev.ringWidth * SCALE) / 2,
-        y: (prev.ringHeight * SCALE) / 2,
+        x,
+        y,
         rotation: 0,
         orderNumber: type === 'start' || type === 'finish' ? null : maxOrder + 1,
       };

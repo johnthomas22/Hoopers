@@ -27,6 +27,8 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run build
+      - run: cd sim && npm ci && npm run build
+      - run: cp -r sim/dist dist/sim
       - name: Build sim3d
         run: |
           cd sim3d
