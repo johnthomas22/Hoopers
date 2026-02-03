@@ -27,6 +27,13 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run build
+      - name: Build sim3d
+        run: |
+          cd sim3d
+          npm ci
+          npm run build
+      - name: Copy sim3d to dist
+        run: cp -r sim3d/dist dist/sim3d
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
