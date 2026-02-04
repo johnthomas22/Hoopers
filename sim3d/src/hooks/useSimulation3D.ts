@@ -35,6 +35,51 @@ function buildOrderedPath(course: Course): PathPoint[] {
   return points;
 }
 
+const TUNNEL_HALF_LENGTH = 1.5; // meters from center to each end
+
+function buildSplineWaypoints(course: Course, waypoints: PathPoint[]): PathPoint[] {
+  const numbered = course.equipment
+    .filter((e) => e.orderNumber !== null)
+    .sort((a, b) => (a.orderNumber ?? 0) - (b.orderNumber ?? 0));
+
+  const expanded: PathPoint[] = [];
+  // Index into waypoints: 0 = start marker (if present), then numbered[0..n-1], then finish
+  const hasStart = course.equipment.some((e) => e.type === 'start');
+
+  for (let wi = 0; wi < waypoints.length; wi++) {
+    // Determine which equipment this waypoint corresponds to
+    const eqIndex = hasStart ? wi - 1 : wi;
+    const isNumbered = eqIndex >= 0 && eqIndex < numbered.length;
+    const eq = isNumbered ? numbered[eqIndex] : null;
+
+    if (eq && eq.type === 'tunnel') {
+      const rotRad = (eq.rotation * Math.PI) / 180;
+      const cx = eq.x / SCALE;
+      const cy = eq.y / SCALE;
+      const dx = Math.cos(rotRad) * TUNNEL_HALF_LENGTH;
+      const dy = Math.sin(rotRad) * TUNNEL_HALF_LENGTH;
+
+      const endA: PathPoint = { x: cx + dx, y: cy + dy };
+      const endB: PathPoint = { x: cx - dx, y: cy - dy };
+
+      // Determine entry end: the one closer to the previous waypoint
+      const prev = expanded.length > 0 ? expanded[expanded.length - 1] : waypoints[0];
+      const distA = (prev.x - endA.x) ** 2 + (prev.y - endA.y) ** 2;
+      const distB = (prev.x - endB.x) ** 2 + (prev.y - endB.y) ** 2;
+
+      if (distA <= distB) {
+        expanded.push(endA, endB);
+      } else {
+        expanded.push(endB, endA);
+      }
+    } else {
+      expanded.push(waypoints[wi]);
+    }
+  }
+
+  return expanded;
+}
+
 function computeDecisionPoints(
   waypoints: PathPoint[],
   path: PathPoint[],
@@ -112,7 +157,8 @@ export function useSimulation3D(course: Course) {
   // Build spline path from course waypoints
   const { path, arcLengths, pathLength, waypoints, decisionPoints } = useMemo(() => {
     const wp = buildOrderedPath(course);
-    const splinePath = catmullRomSpline(wp, 30);
+    const splineWp = buildSplineWaypoints(course, wp);
+    const splinePath = catmullRomSpline(splineWp, 30);
     const al = computeArcLengths(splinePath);
     const dp = computeDecisionPoints(wp, splinePath, al);
     return {
