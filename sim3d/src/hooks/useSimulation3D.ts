@@ -291,14 +291,14 @@ export function useSimulation3D(course: Course) {
   // Derived positions for rendering
   const dogPos2D = sampleAtDistance(path, arcLengths, state.dogDistance);
   const dogDir2D = sampleDirectionAtDistance(path, arcLengths, state.dogDistance);
-  const dogRotation = Math.atan2(dogDir2D.x, dogDir2D.y);
+  const dogRotation = Math.atan2(-dogDir2D.x, -dogDir2D.y);
 
   const handlerDir2D = sampleDirectionAtDistance(
     path,
     arcLengths,
     Math.max(0, state.dogDistance - HANDLER_OFFSET),
   );
-  const handlerRotation = Math.atan2(handlerDir2D.x, handlerDir2D.y);
+  const handlerRotation = Math.atan2(-handlerDir2D.x, -handlerDir2D.y);
 
   // Get current and next obstacle info
   const currentObstacleName = useMemo(() => {
