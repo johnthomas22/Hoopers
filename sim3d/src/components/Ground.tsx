@@ -1,11 +1,19 @@
 import { Line } from '@react-three/drei';
+import type { ThreeEvent } from '@react-three/fiber';
 
 interface Props {
   ringWidth: number;
   ringHeight: number;
+  onGroundClick?: (x: number, z: number) => void;
 }
 
-export default function Ground({ ringWidth, ringHeight }: Props) {
+export default function Ground({ ringWidth, ringHeight, onGroundClick }: Props) {
+  const handleClick = (e: ThreeEvent<MouseEvent>) => {
+    if (!onGroundClick) return;
+    e.stopPropagation();
+    const { x, z } = e.point;
+    onGroundClick(x, z);
+  };
   const boundaryPoints: [number, number, number][] = [
     [0, 0.02, 0],
     [ringWidth, 0.02, 0],
@@ -17,13 +25,13 @@ export default function Ground({ ringWidth, ringHeight }: Props) {
   return (
     <>
       {/* Large ground plane */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[ringWidth / 2, -0.01, ringHeight / 2]}>
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[ringWidth / 2, -0.01, ringHeight / 2]} onClick={handleClick}>
         <planeGeometry args={[ringWidth + 20, ringHeight + 20]} />
         <meshStandardMaterial color="#1a5c1a" />
       </mesh>
 
       {/* Ring area (slightly brighter green) */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[ringWidth / 2, 0, ringHeight / 2]}>
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[ringWidth / 2, 0, ringHeight / 2]} onClick={handleClick}>
         <planeGeometry args={[ringWidth, ringHeight]} />
         <meshStandardMaterial color="#1a6b1a" />
       </mesh>

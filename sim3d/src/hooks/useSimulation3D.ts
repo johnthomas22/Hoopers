@@ -13,8 +13,7 @@ import {
 
 const DOG_SPEED = 4.0; // meters per second at full speed
 const HESITATE_SPEED = 2.0;
-const HANDLER_OFFSET = 3.0; // meters behind dog along path
-const HANDLER_LATERAL_OFFSET = 2.0; // meters to the side
+const HANDLER_SPEED = 2.0; // meters per second walking speed
 const SIGNAL_WINDOW_BEFORE = 4.0; // meters before obstacle
 const SIGNAL_WINDOW_CLOSE = 1.0; // meters before obstacle (committed)
 
@@ -95,6 +94,7 @@ const INITIAL_STATE: SimulationState = {
   dogSpeed: 0,
   dogState: 'idle',
   handlerPos: { x: 0, y: 0 },
+  handlerTarget: { x: 0, y: 0 },
   nextDecisionIndex: 0,
   running: false,
   finished: false,
@@ -125,12 +125,14 @@ export function useSimulation3D(course: Course) {
   }, [course]);
 
   const start = useCallback(() => {
+    const startPos = waypoints[0] ?? { x: 0, y: 0 };
     setState({
       ...INITIAL_STATE,
       running: true,
       dogState: 'approaching',
       dogSpeed: DOG_SPEED,
-      handlerPos: waypoints[0] ?? { x: 0, y: 0 },
+      handlerPos: startPos,
+      handlerTarget: startPos,
     });
   }, [waypoints]);
 
@@ -163,6 +165,13 @@ export function useSimulation3D(course: Course) {
       // Directional signal
       return { ...prev, currentSignal: signal };
     });
+  }, []);
+
+  const moveHandler = useCallback((x: number, z: number) => {
+    setState((prev) => ({
+      ...prev,
+      handlerTarget: { x, y: z },
+    }));
   }, []);
 
   const tick = useCallback(
@@ -259,22 +268,27 @@ export function useSimulation3D(course: Course) {
           newDogSpeed = 0;
         }
 
-        // Compute handler position (offset from dog along path)
-        const handlerDist = Math.max(0, newDogDistance - HANDLER_OFFSET);
-        const handlerOnPath = sampleAtDistance(path, arcLengths, handlerDist);
-        const handlerDir = sampleDirectionAtDistance(path, arcLengths, handlerDist);
-
-        // Offset handler to the side
-        const handlerPos = {
-          x: handlerOnPath.x + handlerDir.y * HANDLER_LATERAL_OFFSET,
-          y: handlerOnPath.y - handlerDir.x * HANDLER_LATERAL_OFFSET,
-        };
+        // Walk handler toward target at HANDLER_SPEED
+        const dx = prev.handlerTarget.x - prev.handlerPos.x;
+        const dy = prev.handlerTarget.y - prev.handlerPos.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        let handlerPos: PathPoint;
+        if (dist < 0.05) {
+          handlerPos = prev.handlerTarget;
+        } else {
+          const step = Math.min(HANDLER_SPEED * delta, dist);
+          handlerPos = {
+            x: prev.handlerPos.x + (dx / dist) * step,
+            y: prev.handlerPos.y + (dy / dist) * step,
+          };
+        }
 
         return {
           dogDistance: newDogDistance,
           dogSpeed: newDogSpeed,
           dogState: newDogState,
           handlerPos,
+          handlerTarget: prev.handlerTarget,
           nextDecisionIndex: newNextDecisionIndex,
           running: !finished,
           finished,
@@ -285,7 +299,7 @@ export function useSimulation3D(course: Course) {
         };
       });
     },
-    [decisionPoints, path, arcLengths, pathLength],
+    [decisionPoints, pathLength],
   );
 
   // Derived positions for rendering
@@ -293,12 +307,10 @@ export function useSimulation3D(course: Course) {
   const dogDir2D = sampleDirectionAtDistance(path, arcLengths, state.dogDistance);
   const dogRotation = Math.atan2(-dogDir2D.x, -dogDir2D.y);
 
-  const handlerDir2D = sampleDirectionAtDistance(
-    path,
-    arcLengths,
-    Math.max(0, state.dogDistance - HANDLER_OFFSET),
-  );
-  const handlerRotation = Math.atan2(-handlerDir2D.x, -handlerDir2D.y);
+  // Handler faces toward the dog
+  const hToDogX = dogPos2D.x - state.handlerPos.x;
+  const hToDogY = dogPos2D.y - state.handlerPos.y;
+  const handlerRotation = Math.atan2(-hToDogX, -hToDogY);
 
   // Get current and next obstacle info
   const currentObstacleName = useMemo(() => {
@@ -332,6 +344,7 @@ export function useSimulation3D(course: Course) {
     start,
     reset,
     sendSignal,
+    moveHandler,
     tick,
   };
 }

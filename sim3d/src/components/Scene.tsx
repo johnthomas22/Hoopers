@@ -8,10 +8,11 @@ import RunPath3D from './RunPath3D';
 interface Props {
   course: Course;
   orbitControls?: boolean;
+  onGroundClick?: (x: number, z: number) => void;
   children?: React.ReactNode;
 }
 
-export default function Scene({ course, orbitControls = true, children }: Props) {
+export default function Scene({ course, orbitControls = true, onGroundClick, children }: Props) {
   return (
     <Canvas
       camera={{
@@ -42,7 +43,7 @@ export default function Scene({ course, orbitControls = true, children }: Props)
       />
 
       {/* Ground and ring */}
-      <Ground ringWidth={course.ringWidth} ringHeight={course.ringHeight} />
+      <Ground ringWidth={course.ringWidth} ringHeight={course.ringHeight} onGroundClick={onGroundClick} />
 
       {/* Obstacles */}
       {course.equipment.map((eq) => (

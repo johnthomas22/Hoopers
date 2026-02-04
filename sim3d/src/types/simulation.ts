@@ -36,6 +36,8 @@ export interface SimulationState {
   dogState: DogBehaviorState;
   /** Handler position in 2D sim coords */
   handlerPos: PathPoint;
+  /** Target position the handler is walking toward */
+  handlerTarget: PathPoint;
   /** Index of the next decision point */
   nextDecisionIndex: number;
   /** Whether the run has started */

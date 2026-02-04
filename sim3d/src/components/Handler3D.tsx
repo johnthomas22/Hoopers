@@ -37,6 +37,15 @@ export default function Handler3D({ position, rotation }: Props) {
         <sphereGeometry args={[0.15, 16, 16]} />
         <meshStandardMaterial color="#FBBF24" />
       </mesh>
+      {/* Arms */}
+      <mesh position={[-0.28, 1.1, 0]} rotation={[0, 0, 0.3]}>
+        <cylinderGeometry args={[0.05, 0.05, 0.55, 8]} />
+        <meshStandardMaterial color="#1E3A5F" />
+      </mesh>
+      <mesh position={[0.28, 1.1, 0]} rotation={[0, 0, -0.3]}>
+        <cylinderGeometry args={[0.05, 0.05, 0.55, 8]} />
+        <meshStandardMaterial color="#1E3A5F" />
+      </mesh>
       {/* Legs */}
       <mesh position={[-0.08, 0.25, 0]}>
         <cylinderGeometry args={[0.06, 0.06, 0.5, 8]} />

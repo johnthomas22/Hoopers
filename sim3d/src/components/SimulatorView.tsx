@@ -34,19 +34,15 @@ export default function SimulatorView({ course, onBack }: Props) {
       let signal: Signal | null = null;
       switch (e.code) {
         case 'ArrowLeft':
-        case 'KeyA':
           signal = 'left';
           break;
         case 'ArrowRight':
-        case 'KeyD':
           signal = 'right';
           break;
         case 'ArrowUp':
-        case 'KeyW':
           signal = 'go_on';
           break;
         case 'ArrowDown':
-        case 'KeyS':
           signal = 'wait';
           break;
         case 'Space':
@@ -99,7 +95,7 @@ export default function SimulatorView({ course, onBack }: Props) {
 
       {/* 3D Canvas */}
       <div className="flex-1 relative">
-        <Scene course={course} orbitControls={!isSimulating}>
+        <Scene course={course} orbitControls={!isSimulating} onGroundClick={isSimulating ? sim.moveHandler : undefined}>
           {isSimulating && (
             <>
               <Dog3D
