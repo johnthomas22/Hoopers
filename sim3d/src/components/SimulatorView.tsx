@@ -106,6 +106,7 @@ export default function SimulatorView({ course, onBack }: Props) {
               <Handler3D
                 position={sim.handlerPosition}
                 rotation={sim.handlerRotation}
+                signal={sim.state.currentSignal}
               />
               <FollowCamera
                 handlerPosition={sim.handlerPosition}

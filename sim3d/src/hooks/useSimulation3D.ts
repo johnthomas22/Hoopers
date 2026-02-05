@@ -353,10 +353,13 @@ export function useSimulation3D(course: Course) {
   const dogDir2D = sampleDirectionAtDistance(path, arcLengths, state.dogDistance);
   const dogRotation = Math.atan2(-dogDir2D.x, -dogDir2D.y);
 
-  // Handler faces toward the dog
+  // Handler faces toward the dog (fall back to initial path direction if co-located)
   const hToDogX = dogPos2D.x - state.handlerPos.x;
   const hToDogY = dogPos2D.y - state.handlerPos.y;
-  const handlerRotation = Math.atan2(-hToDogX, -hToDogY);
+  const hToDogDist = Math.sqrt(hToDogX * hToDogX + hToDogY * hToDogY);
+  const handlerRotation = hToDogDist > 0.01
+    ? Math.atan2(-hToDogX, -hToDogY)
+    : Math.atan2(-dogDir2D.x, -dogDir2D.y);
 
   // Get current and next obstacle info
   const currentObstacleName = useMemo(() => {
