@@ -16,7 +16,7 @@ const SMOOTH_FACTOR = 3.0;
 
 export default function FollowCamera({
   handlerPosition,
-  dogPosition,
+  dogPosition: _dogPosition,
   handlerRotation,
   enabled,
 }: Props) {
@@ -32,7 +32,6 @@ export default function FollowCamera({
     }
 
     const handler = new THREE.Vector3(...handlerPosition);
-    const dog = new THREE.Vector3(...dogPosition);
 
     // Handler forward direction in Three.js: (-sin(rot), 0, -cos(rot))
     const forwardX = -Math.sin(handlerRotation);
